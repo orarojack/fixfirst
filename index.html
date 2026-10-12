@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FixFirst: report community problems, fix the most urgent first</title>
+  <meta name="description" content="Residents describe a local problem in their own words. FixFirst's in-browser AI sorts it, scores the urgency, finds duplicates, routes it to the right office and ranks what to fix first.">
+  <meta name="theme-color" content="#ffc72c">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='8' y='8' width='32' height='32' rx='5' transform='rotate(45 24 24)' fill='%23ffc72c' stroke='%2323272d' stroke-width='3'/%3E%3Cpath d='M21.5 17.5 26 15v18' fill='none' stroke='%2323272d' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#report">
+        <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="8" y="8" width="32" height="32" rx="5" transform="rotate(45 24 24)" fill="#ffc72c" stroke="#23272d" stroke-width="3"/>
+          <path d="M21.5 17.5 26 15v18" fill="none" stroke="#23272d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>
+          <span class="brand-name">FixFirst</span>
+          <span class="brand-for">for <span id="community-name">Riverside</span></span>
+        </span>
+      </a>
+
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button type="button" class="tab" role="tab" id="tab-report" aria-controls="panel-report" data-action="tab" data-tab="report">Report a problem</button>
+        <button type="button" class="tab" role="tab" id="tab-board" aria-controls="panel-board" data-action="tab" data-tab="board">Priority board <span class="count" id="board-count">0</span></button>
+        <button type="button" class="tab" role="tab" id="tab-map" aria-controls="panel-map" data-action="tab" data-tab="map">Map</button>
+        <button type="button" class="tab" role="tab" id="tab-insights" aria-controls="panel-insights" data-action="tab" data-tab="insights">Community pulse</button>
+        <button type="button" class="tab" role="tab" id="tab-ai" aria-controls="panel-ai" data-action="tab" data-tab="ai">How the AI works</button>
+      </nav>
+
+      <div class="top-actions">
+        <div class="role" role="group" aria-label="Use FixFirst as">
+          <button type="button" class="role-btn" data-action="role" data-value="resident" aria-pressed="true">Resident</button>
+          <button type="button" class="role-btn" data-action="role" data-value="official" aria-pressed="false">Official</button>
+        </div>
+        <button type="button" class="icon-btn" data-action="settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+
+    <!-- 1. Report -->
+    <section class="panel" id="panel-report" role="tabpanel" aria-labelledby="tab-report">
+      <div class="intro">
+        <h1>What needs fixing?</h1>
+        <p class="lede">Describe a problem in your community in your own words. FixFirst works out what kind of problem it is, how dangerous it is, which office should fix it, and whether someone already reported it.</p>
+      </div>
+
+      <div class="report-grid">
+        <div class="report-form">
+          <div class="field">
+            <label class="label" for="f-text">What's the problem?</label>
+            <textarea id="f-text" rows="5" maxlength="600" aria-describedby="f-text-help" placeholder="The public water point on our road has been broken for a week, so families have no clean water."></textarea>
+            <p class="help" id="f-text-help">Say what it is and why it matters. Details like injuries, children or days without water raise the urgency.</p>
+            <div class="examples"><span>Try an example:</span><span id="examples" class="example-list"></span></div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="f-location">Where is it? <span class="muted">Street, landmark or area</span></label>
+            <input id="f-location" type="text" maxlength="80" autocomplete="off" placeholder="Hilltop Road, by the water point">
+          </div>
+
+          <div class="field">
+            <span class="label" id="pin-label">Pin it on the map <span class="muted">Tap the spot, then drag the pin to adjust</span></span>
+            <div id="f-map" class="picker-map" aria-labelledby="pin-label"></div>
+            <div class="pin-row">
+              <button type="button" class="btn btn-small" data-action="locate">Use my location</button>
+              <span id="pin-status" class="help">No pin yet.</span>
+              <button type="button" class="link-btn" data-action="clear-pin" hidden>Remove pin</button>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label class="label" for="f-category">Problem type</label>
+              <select id="f-category"></select>
+            </div>
+            <div class="field">
+              <span class="label" id="photo-label">Photo <span class="muted">Optional</span></span>
+              <input id="f-photo" class="visually-hidden" type="file" accept="image/*" aria-labelledby="photo-label">
+              <label class="file-btn" for="f-photo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3v10H4z"/><circle cx="12" cy="13" r="3.2"/></svg>
+                <span id="photo-btn-text">Add a photo</span>
+              </label>
+              <div id="photo-preview" class="photo-preview"></div>
+            </div>
+          </div>
+
+          <div class="send-row">
+            <button type="button" id="f-send" class="btn btn-primary" data-action="send" disabled>Send report</button>
+            <p class="fineprint">Reports are saved on this device. The AI runs in your browser: no account, no server, no API key.</p>
+          </div>
+        </div>
+
+        <aside class="ticket" aria-labelledby="ticket-title">
+          <div class="ticket-head">
+            <h2 class="ticket-title" id="ticket-title">Work order</h2>
+            <span class="ticket-ref" id="ticket-ref">Draft</span>
+          </div>
+          <div id="ticket-body"></div>
+        </aside>
+      </div>
+      <p class="visually-hidden" id="sr-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- 2. Priority board -->
+    <section class="panel" id="panel-board" role="tabpanel" aria-labelledby="tab-board" hidden>
+      <div class="intro">
+        <h1>Fix first.</h1>
+        <p class="lede">Every open problem in <span data-community>Riverside</span>, ranked by how dangerous it is, how many residents it affects, and how long it has waited.</p>
+      </div>
+      <div class="filters">
+        <div class="seg" role="group" aria-label="Show">
+          <button type="button" class="seg-btn" data-action="fstatus" data-value="active" aria-pressed="true">Open</button>
+          <button type="button" class="seg-btn" data-action="fstatus" data-value="resolved" aria-pressed="false">Resolved</button>
+          <button type="button" class="seg-btn" data-action="fstatus" data-value="all" aria-pressed="false">All</button>
+        </div>
+        <label class="search">
+          <span class="visually-hidden">Search reports</span>
+          <input id="b-search" type="search" placeholder="Search reports, places or FF numbers" autocomplete="off">
+        </label>
+      </div>
+      <div class="chip-row" id="b-cats" role="group" aria-label="Problem type"></div>
+      <div id="board-list"></div>
+    </section>
+
+    <!-- Map -->
+    <section class="panel" id="panel-map" role="tabpanel" aria-labelledby="tab-map" hidden>
+      <div class="intro">
+        <h1>Problem map</h1>
+        <p class="lede">Every problem in <span data-community>Riverside</span>, pinned where residents found it. Bigger, redder pins are more urgent. Select a pin for the details.</p>
+      </div>
+      <div class="filters">
+        <div class="seg" role="group" aria-label="Show">
+          <button type="button" class="seg-btn" data-action="mstatus" data-value="active" aria-pressed="true">Open</button>
+          <button type="button" class="seg-btn" data-action="mstatus" data-value="all" aria-pressed="false">All</button>
+        </div>
+        <ul class="legend" aria-label="Pin colours">
+          <li><span class="dot lvl-critical"></span>Critical</li>
+          <li><span class="dot lvl-high"></span>High</li>
+          <li><span class="dot lvl-moderate"></span>Moderate</li>
+          <li><span class="dot lvl-low"></span>Low</li>
+          <li><span class="dot st-resolved"></span>Resolved</li>
+        </ul>
+      </div>
+      <div class="chip-row" id="m-cats" role="group" aria-label="Problem type"></div>
+      <div id="map-view" class="map-view"></div>
+      <p class="help map-count" id="map-count"></p>
+    </section>
+
+    <!-- 3. Community pulse -->
+    <section class="panel" id="panel-insights" role="tabpanel" aria-labelledby="tab-insights" hidden>
+      <div class="intro">
+        <h1>Community pulse</h1>
+        <p class="lede">Where problems pile up and what residents care about most, so officials can plan crews and budgets around real need.</p>
+      </div>
+      <div id="insights-body"></div>
+    </section>
+
+    <!-- 4. How the AI works -->
+    <section class="panel" id="panel-ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
+      <div class="intro">
+        <h1>How the AI works</h1>
+        <p class="lede">No black box. Every problem type, urgency score and ranking can be traced back to these six steps, all running in your browser.</p>
+      </div>
+      <ol class="steps">
+        <li><span class="plate plate-sm">1</span><div><h3>Clean the words</h3><p>Lower-case the text, drop filler words and trim endings, so <i>leaking</i>, <i>leaked</i> and <i>leaks</i> all count as <i>leak</i>. Word pairs like <i>main street</i> are kept too.</p></div></li>
+        <li><span class="plate plate-sm">2</span><div><h3>Guess the problem type</h3><p>A Naive Bayes classifier compares the words with labelled example reports and picks the most likely type, with a confidence score.</p></div></li>
+        <li><span class="plate plate-sm">3</span><div><h3>Score the urgency</h3><p>Risk signals like live wires, injuries, sewage or children nearby add points on a 0 to 10 scale. Every point is shown to the person reporting.</p></div></li>
+        <li><span class="plate plate-sm">4</span><div><h3>Look for duplicates</h3><p>TF-IDF turns each report into weighted words. Cosine similarity, plus the distance between map pins, finds open reports about the same problem.</p></div></li>
+        <li><span class="plate plate-sm">5</span><div><h3>Rank the work</h3><p>FixFirst score = urgency &times; 7 (up to 70) + residents affected (up to 20) + days waiting (up to 10). Critical hazards always go first.</p></div></li>
+        <li><span class="plate plate-sm">6</span><div><h3>Learn from corrections</h3><p>When an official fixes a wrong problem type, that report joins the training data and the model retrains on the spot.</p></div></li>
+      </ol>
+      <div id="ai-body"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>FixFirst prototype, built for WarriorHacks 2.0. Reports and settings stay in this browser.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal" id="modal" hidden>
+    <div class="modal-backdrop" data-action="close-modal"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head">
+        <h2 id="modal-title">Settings</h2>
+        <button type="button" class="icon-btn" data-action="close-modal" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/classifier.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
